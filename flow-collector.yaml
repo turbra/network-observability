@@ -1,0 +1,172 @@
+apiVersion: v1
+items:
+- apiVersion: flows.netobserv.io/v1beta2
+  kind: FlowCollector
+  metadata:
+    annotations:
+      flows.netobserv.io/flowcollectorlegacy-namespace: netobserv
+      flows.netobserv.io/flpparent-namespace: netobserv
+    name: cluster
+  spec:
+    agent:
+      ebpf:
+        cacheActiveTimeout: 15s
+        cacheMaxFlows: 120000
+        excludeInterfaces:
+        - lo
+        features:
+        - PacketDrop
+        - DNSTracking
+        - NetworkEvents
+        - PacketTranslation
+        - FlowRTT
+        imagePullPolicy: IfNotPresent
+        kafkaBatchSize: 1048576
+        logLevel: info
+        metrics:
+          server:
+            tls:
+              insecureSkipVerify: false
+              type: Disabled
+        privileged: true
+        resources:
+          limits:
+            memory: 800Mi
+          requests:
+            cpu: 100m
+            memory: 50Mi
+        sampling: 500
+      ipfix:
+        cacheActiveTimeout: 20s
+        cacheMaxFlows: 400
+        clusterNetworkOperator:
+          namespace: openshift-network-operator
+        forceSampleAll: false
+        ovnKubernetes:
+          containerName: ovnkube-node
+          daemonSetName: ovnkube-node
+          namespace: ovn-kubernetes
+        sampling: 400
+      type: eBPF
+    consolePlugin:
+      autoscaler:
+        maxReplicas: 0
+        status: Disabled
+      enable: true
+      imagePullPolicy: IfNotPresent
+      logLevel: info
+      portNaming:
+        enable: true
+      quickFilters:
+      - default: true
+        filter:
+          flow_layer: '"app"'
+        name: Applications
+      - filter:
+          flow_layer: '"infra"'
+        name: Infrastructure
+      - default: true
+        filter:
+          dst_kind: '"Pod"'
+          src_kind: '"Pod"'
+        name: Pods network
+      - filter:
+          dst_kind: '"Service"'
+        name: Services network
+      - filter:
+          src_subnet_label: '"",EXT:'
+        name: External ingress
+      - filter:
+          dst_subnet_label: '"",EXT:'
+        name: External egress
+      replicas: 1
+      resources:
+        limits:
+          memory: 100Mi
+        requests:
+          cpu: 100m
+          memory: 50Mi
+    deploymentModel: Service
+    kafka:
+      address: ""
+      sasl:
+        type: Disabled
+      tls:
+        enable: false
+        insecureSkipVerify: false
+      topic: ""
+    loki:
+      enable: true
+      lokiStack:
+        name: loki
+      manual:
+        authToken: Disabled
+        ingesterUrl: http://loki:3100/
+        querierUrl: http://loki:3100/
+        statusTls:
+          enable: false
+          insecureSkipVerify: false
+        tenantID: netobserv
+        tls:
+          enable: false
+          insecureSkipVerify: false
+      microservices:
+        ingesterUrl: http://loki-distributor:3100/
+        querierUrl: http://loki-query-frontend:3100/
+        tenantID: netobserv
+        tls:
+          enable: false
+          insecureSkipVerify: false
+      mode: Monolithic
+      monolithic:
+        installDemoLoki: true
+        tenantID: netobserv
+        tls:
+          enable: false
+          insecureSkipVerify: false
+        url: http://loki.netobserv.svc.cluster.local.:3100/
+      readTimeout: 30s
+      writeBatchSize: 10485760
+      writeBatchWait: 1s
+      writeTimeout: 10s
+    namespace: netobserv
+    networkPolicy:
+      enable: true
+    processor:
+      clusterName: ""
+      consumerReplicas: 3
+      imagePullPolicy: IfNotPresent
+      kafkaConsumerAutoscaler:
+        maxReplicas: 0
+        status: Disabled
+      kafkaConsumerBatchSize: 10485760
+      kafkaConsumerQueueCapacity: 1000
+      kafkaConsumerReplicas: 3
+      logLevel: info
+      logTypes: Flows
+      metrics:
+        server:
+          tls:
+            insecureSkipVerify: false
+            type: Disabled
+      multiClusterDeployment: false
+      resources:
+        limits:
+          memory: 800Mi
+        requests:
+          cpu: 100m
+          memory: 100Mi
+      slicesConfig:
+        collectionMode: AlwaysCollect
+        enable: false
+    prometheus:
+      querier:
+        enable: true
+        manual:
+          forwardUserToken: false
+          tls:
+            enable: false
+            insecureSkipVerify: false
+          url: http://prometheus:9090
+        mode: Auto
+        timeout: 30s
